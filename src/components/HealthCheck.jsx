@@ -1,14 +1,29 @@
-import React from "react";
+import React, { useEffect, useState } from "react";
 
 function HealthCheck() {
-  const mockServices = [
-    {
-      name: "API Gateway",
-      healthCheckStatus: "OK",
-      versionNumber: "1.0.0",
-      dateDeployed: "2022-05-10",
-    },
+  const endpointUrls = [
+    "https://1tg41k5u7h.execute-api.us-east-1.amazonaws.com/projects/health",
   ];
+  const [services, setServices] = useState([]);
+
+  useEffect(() => {
+    const fetchData = async () => {
+      const responses = await Promise.all(
+        endpointUrls.map((url) =>
+          fetch(url).then((response) => response.json()),
+        ),
+      );
+      const formattedServices = responses.map((data, index) => ({
+        name: `Service ${index + 1}`,
+        healthCheckStatus: data.status === "ok" ? "OK" : "Error",
+        versionNumber: data.version,
+        dateDeployed: data.date_deployed,
+      }));
+      setServices(formattedServices);
+    };
+
+    fetchData();
+  }, [endpointUrls]);
 
   return (
     <div>
@@ -23,8 +38,8 @@ function HealthCheck() {
           </tr>
         </thead>
         <tbody>
-          {mockServices.map((service) => (
-            <tr key={service.name}>
+          {services.map((service, index) => (
+            <tr key={index}>
               <td>{service.name}</td>
               <td
                 className={
