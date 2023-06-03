@@ -5,34 +5,14 @@ function UserForm({ userName }) {
   const [searchResults, setSearchResults] = useState([]);
 
   const handleSearch = () => {
-    // Simulated fetch from the database
-    const fetchedData = [
-      {
-        id: 1,
-        projectReference: "Project 1",
-        dateCreated: "2022-05-01",
-        clientName: "Client 1",
-        address: "Address 1",
-        status: "Active",
-      },
-      {
-        id: 2,
-        projectReference: "Project 2",
-        dateCreated: "2022-05-02",
-        clientName: "Client 2",
-        address: "Address 2",
-        status: "Inactive",
-      },
-      {
-        id: 3,
-        projectReference: "Project 3",
-        dateCreated: "2022-05-03",
-        clientName: "Client 3",
-        address: "Address 3",
-        status: "Active",
-      },
-    ];
-    setSearchResults(fetchedData);
+    fetch("https://1tg41k5u7h.execute-api.us-east-1.amazonaws.com/projects/")
+      .then((response) => response.json())
+      .then((data) => {
+        setSearchResults(data);
+      })
+      .catch((error) => {
+        console.error("Error fetching projects:", error);
+      });
   };
 
   const navigate = useNavigate();

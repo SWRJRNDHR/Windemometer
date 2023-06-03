@@ -3,6 +3,7 @@ import React, { useEffect, useState } from "react";
 function HealthCheck() {
   const endpointUrls = [
     "https://1tg41k5u7h.execute-api.us-east-1.amazonaws.com/projects/health",
+    "https://1tg41k5u7h.execute-api.us-east-1.amazonaws.com/windspeeds/health",
   ];
   const [services, setServices] = useState([]);
 

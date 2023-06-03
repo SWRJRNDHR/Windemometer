@@ -1,10 +1,10 @@
-import React, { useState } from "react";
-import { Formik, Form } from "formik";
+import React, { useState, useEffect } from "react";
 import axios from "axios";
 import { useNavigate } from "react-router-dom";
 import AxiosMockAdapter from "axios-mock-adapter";
+import { Auth } from "aws-amplify";
 
-function NewJobPage({ status }) {
+function NewJobPage() {
   const [showResults, setShowResults] = useState(false);
   const [showSaveButton, setShowSaveButton] = useState(true);
   const [isEditable, setIsEditable] = useState(true);
@@ -12,6 +12,32 @@ function NewJobPage({ status }) {
   const [isCompleted, setIsCompleted] = useState(false);
   const mockAdapter = new AxiosMockAdapter(axios);
   const mock = new AxiosMockAdapter(axios);
+  const [dateCreated, setDateCreated] = useState("");
+
+  const [ProjectId, setProjectId] = useState("");
+  const [job_reference, setjob_reference] = useState("");
+  const [client_first_name, setclient_first_name] = useState("");
+  const [client_last_name, setclient_last_name] = useState("");
+  const [client_email, setclient_email] = useState("");
+  const [site_address, setsite_address] = useState("");
+  const [notes, setNotes] = useState("");
+  const [span, setSpan] = useState("");
+  const [cardinalDirection, setCardinalDirection] = useState("");
+  const [length, setLength] = useState("");
+  const [average_height, setaverage_height] = useState("");
+  const [elevation, setElevation] = useState("");
+  const [building_class, setbuilding_class] = useState("");
+  const [wind_region, setwind_region] = useState("");
+  const [importance_level, setimportance_level] = useState("");
+  const [regionalWindspeed, setregionalWindspeed] = useState("");
+  const [shielding, setshielding] = useState("");
+  const [terrainCategory, setterrainCategory] = useState("");
+  const [topography, settopography] = useState("");
+  const [windDirectionalMultiplier, setwindDirectionalMultiplier] =
+    useState("");
+  const [climateMultiplier, setclimateMultiplier] = useState("");
+  const [status, setStatus] = useState("WORKING");
+  const [calculatedWindspeed, setCalculatedWindspeed] = useState(null);
 
   mock.onGet("/api/download").reply(200, {
     name: "API Gateway",
@@ -33,10 +59,148 @@ function NewJobPage({ status }) {
       });
   };
 
-  const handleSave = () => {
-    setShowResults(true);
-    setShowSaveButton(false);
-    setIsEditable(false);
+  useEffect(() => {
+    const today = new Date();
+    const formattedDate = formatDate(today); // Format the date if needed
+    setDateCreated(formattedDate);
+  }, []);
+
+  const formatDate = (date) => {
+    const year = date.getFullYear();
+    const month = String(date.getMonth() + 1).padStart(2, "0");
+    const day = String(date.getDate()).padStart(2, "0");
+    return `${year}-${month}-${day}`;
+  };
+
+  const getUserID = async () => {
+    try {
+      const user = await Auth.currentAuthenticatedUser();
+      const userID = user.attributes.sub;
+      //console.log(userID);
+      return userID;
+    } catch (error) {
+      console.log(error);
+    }
+  };
+  const handleSave = async (event) => {
+    event.preventDefault(); // Prevent the default form submission behavior
+    const user_id = await getUserID();
+    const userId = await getUserID();
+    console.log(userId);
+    console.log("Selected wind region:", wind_region);
+    const date_created = dateCreated;
+
+    const projectRequestBody = {
+      average_height,
+      building_class,
+      client_email,
+      client_first_name,
+      client_last_name,
+      elevation,
+      importance_level,
+      job_reference,
+      length,
+      notes,
+      site_address,
+      span,
+      status,
+      user_id,
+      wind_region,
+    };
+
+    // Disable the save button and make the form fields read-only
+
+    fetch("https://1tg41k5u7h.execute-api.us-east-1.amazonaws.com/projects/", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify(projectRequestBody),
+    })
+      .then((response) => {
+        console.log(response);
+        setShowSaveButton(false);
+        setIsEditable(false);
+        setShowResults(true);
+        return response.json();
+      })
+      .then((data) => {
+        // Handle the response from the API
+        console.log("Project API response:", data);
+        // Extract the project ID from the response
+        const projectId = data.id;
+
+        // Create the windspeeds request body with the project ID
+        const windspeedRequestBody = {
+          ProjectId: projectId,
+          userId,
+          regionalWindspeed,
+          shielding,
+          terrainCategory,
+          topography,
+          windDirectionalMultiplier,
+          climateMultiplier,
+          dateCreated,
+          cardinalDirection,
+        };
+
+        // Make the windspeeds API call
+        return fetch(
+          "https://1tg41k5u7h.execute-api.us-east-1.amazonaws.com/windspeeds/",
+          {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+            },
+            body: JSON.stringify(windspeedRequestBody),
+          },
+        );
+      })
+      .then((response) => response.json())
+      .then((data) => {
+        // Handle the response from the windspeeds API
+        console.log("Windspeed API response:", data);
+
+        const windspeedCalculateBody = {
+          ProjectId,
+          date_created,
+          cardinalDirection,
+          terrainCategory,
+          windDirectionalMultiplier,
+          climateMultiplier,
+          regionalWindspeed,
+          shielding,
+          topography,
+          status,
+          user_id,
+        };
+        return fetch(
+          `https://1tg41k5u7h.execute-api.us-east-1.amazonaws.com/windspeeds/${data.id}/calculate`,
+          {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+            },
+            body: JSON.stringify(windspeedCalculateBody),
+          },
+        );
+
+        // You can update the state or perform any other actions with the response data here
+      })
+      .then((response) => response.json())
+      .then((data) => {
+        // Handle the response from the windspeeds API
+        //console.log("API response:", data);
+        setCalculatedWindspeed(data);
+        console.log("Calculated Windspeed: ", data);
+
+        // You can update the state or perform any other actions with the response data here
+      })
+
+      .catch((error) => {
+        // Handle any errors that occurred during the API calls
+        console.error("API error:", error);
+      });
   };
 
   const handleEdit = () => {
@@ -68,320 +232,371 @@ function NewJobPage({ status }) {
     setIsCompleted(true);
   };
 
+  const handleSelectChange = (e) => {
+    const { id, value } = e.target;
+    if (id === "wind_region") {
+      setwind_region(value);
+    } else if (id === "importance_level") {
+      setimportance_level(parseFloat(e.target.value));
+    }
+  };
+
+  useEffect(() => {
+    // Update the status automatically from api
+    const newStatus = "AT_REVIEW";
+
+    // Update the status state
+    setStatus(newStatus);
+  }, []);
+
   return (
     <div className="container">
       <h1>New Job</h1>
-
       <h3>Status: {status}</h3>
-
       <hr />
-
       <h2>Project Details</h2>
-      <Formik
-        initialValues={{
-          projectRef: "", // Set the initial value of projectRef here
-        }}
-        onSubmit={(values) => {
-          console.log(values); // Handle form submission here
-        }}
-      >
-        {(formikProps) => (
-          <form onSubmit={formikProps.handleSubmit}>
-            <div className="row">
-              <div className="col-md-6">
-                <div className="mb-3">
-                  <label htmlFor="projectRef" className="form-label">
-                    Project Ref
-                  </label>
-                  <input
-                    type="text"
-                    className="form-control form-control-sm"
-                    id="projectRef"
-                    disabled={!isEditable}
-                    style={{ width: "200px" }}
-                  />
-                </div>
+      <form onSubmit={handleSave}>
+        <div className="row">
+          <div className="col-md-6">
+            <div className="mb-3">
+              <label htmlFor="projectRef" className="form-label">
+                Project Ref
+              </label>
+              <input
+                type="text"
+                className="form-control form-control-sm"
+                id="job_reference"
+                disabled={!isEditable}
+                style={{ width: "200px" }}
+                value={job_reference}
+                onChange={(e) => setjob_reference(e.target.value)}
+              />
+            </div>
 
-                <div className="mb-3">
-                  <label htmlFor="clientFirstName" className="form-label">
-                    Client First Name
-                  </label>
-                  <input
-                    type="text"
-                    className="form-control form-control-sm"
-                    id="clientFirstName"
-                    disabled={!isEditable}
-                    style={{ width: "200px" }}
-                  />
-                </div>
-                <div className="mb-3">
-                  <label htmlFor="clientLastName" className="form-label">
-                    Client Last Name
-                  </label>
-                  <input
-                    type="text"
-                    className="form-control form-control-sm"
-                    id="clientLastName"
-                    disabled={!isEditable}
-                    style={{ width: "200px" }}
-                  />
-                </div>
-                <div className="mb-3">
-                  <label htmlFor="clientEmail" className="form-label">
-                    Client Email
-                  </label>
-                  <input
-                    type="email"
-                    className="form-control form-control-sm"
-                    id="clientEmail"
-                    disabled={!isEditable}
-                    style={{ width: "200px" }}
-                  />
-                </div>
-                <div className="mb-3">
-                  <label htmlFor="siteAddress" className="form-label">
-                    Site Address
-                  </label>
-                  <input
-                    type="text"
-                    className="form-control form-control-sm"
-                    id="siteAddress"
-                    disabled={!isEditable}
-                    style={{ width: "200px" }}
-                  />
-                </div>
-                <div className="mb-3">
-                  <label htmlFor="notes" className="form-label">
-                    Notes
-                  </label>
-                  <input
-                    type="text"
-                    className="form-control form-control-sm"
-                    id="notes"
-                    disabled={!isEditable}
-                    style={{ width: "200px" }}
-                  />
-                </div>
+            <div className="mb-3">
+              <label htmlFor="client_first_name" className="form-label">
+                Client First Name
+              </label>
+              <input
+                type="text"
+                className="form-control form-control-sm"
+                id="client_first_name"
+                disabled={!isEditable}
+                style={{ width: "200px" }}
+                value={client_first_name}
+                onChange={(e) => setclient_first_name(e.target.value)}
+              />
+            </div>
+            <div className="mb-3">
+              <label htmlFor="client_last_name" className="form-label">
+                Client Last Name
+              </label>
+              <input
+                type="text"
+                className="form-control form-control-sm"
+                id="client_last_name"
+                disabled={!isEditable}
+                style={{ width: "200px" }}
+                value={client_last_name}
+                onChange={(e) => setclient_last_name(e.target.value)}
+              />
+            </div>
+            <div className="mb-3">
+              <label htmlFor="client_email" className="form-label">
+                Client Email
+              </label>
+              <input
+                type="email"
+                className="form-control form-control-sm"
+                id="client_email"
+                disabled={!isEditable}
+                style={{ width: "200px" }}
+                value={client_email}
+                onChange={(e) => setclient_email(e.target.value)}
+              />
+            </div>
+            <div className="mb-3">
+              <label htmlFor="site_address" className="form-label">
+                Site Address
+              </label>
+              <input
+                type="text"
+                className="form-control form-control-sm"
+                id="site_address"
+                disabled={!isEditable}
+                style={{ width: "200px" }}
+                value={site_address}
+                onChange={(e) => setsite_address(e.target.value)}
+              />
+            </div>
+            <div className="mb-3">
+              <label htmlFor="notes" className="form-label">
+                Notes
+              </label>
+              <input
+                type="text"
+                className="form-control form-control-sm"
+                id="notes"
+                disabled={!isEditable}
+                style={{ width: "200px" }}
+                value={notes}
+                onChange={(e) => setNotes(e.target.value)}
+              />
+            </div>
+          </div>
+          <div className="col-md-6">
+            <div className="mb-3">
+              <label htmlFor="dateCreated" className="form-label">
+                Date Created
+              </label>
+              <input
+                type="text"
+                className="form-control form-control-sm"
+                id="dateCreated"
+                value={dateCreated}
+                readOnly
+                style={{ width: "200px" }}
+              />
+            </div>
+            <div className="mb-3">
+              <label htmlFor="span" className="form-label">
+                Span (meters)
+              </label>
+              <div className="input-group">
+                <input
+                  type="text"
+                  className="form-control form-control-sm"
+                  id="span"
+                  disabled={!isEditable}
+                  style={{ width: "200px" }}
+                  value={span}
+                  onChange={(e) => setSpan(parseFloat(e.target.value))}
+                />
+                <span className="input-group-text">meters</span>
               </div>
-              <div className="col-md-6">
-                <div className="mb-3">
-                  <label htmlFor="dateCreated" className="form-label">
-                    Date Created
-                  </label>
-                  <input
-                    type="text"
-                    className="form-control form-control-sm"
-                    id="dateCreated"
-                    readOnly
-                    style={{ width: "200px" }}
-                  />
-                </div>
-                <div className="mb-3">
-                  <label htmlFor="span" className="form-label">
-                    Span (meters)
-                  </label>
-                  <div className="input-group">
-                    <input
-                      type="text"
-                      className="form-control form-control-sm"
-                      id="span"
-                      disabled={!isEditable}
-                      style={{ width: "200px" }}
-                    />
-                    <span className="input-group-text">meters</span>
-                  </div>
-                </div>
-                <div className="mb-3">
-                  <label htmlFor="length" className="form-label">
-                    Length (meters)
-                  </label>
-                  <div className="input-group">
-                    <input
-                      type="text"
-                      className="form-control form-control-sm"
-                      id="length"
-                      disabled={!isEditable}
-                      style={{ width: "200px" }}
-                    />
-                    <span className="input-group-text">meters</span>
-                  </div>
-                </div>
-                <div className="mb-3">
-                  <label htmlFor="avgHeight" className="form-label">
-                    Avg Height (meters)
-                  </label>
-                  <div className="input-group">
-                    <input
-                      type="text"
-                      className="form-control form-control-sm"
-                      id="avgHeight"
-                      disabled={!isEditable}
-                      style={{ width: "200px" }}
-                    />
-                    <span className="input-group-text">meters</span>
-                  </div>
-                </div>
-                <div className="mb-3">
-                  <label htmlFor="elevation" className="form-label">
-                    Elevation (meters)
-                  </label>
-                  <div className="input-group">
-                    <input
-                      type="text"
-                      className="form-control form-control-sm"
-                      id="elevation"
-                      disabled={!isEditable}
-                      style={{ width: "200px" }}
-                    />
-                    <span className="input-group-text">meters</span>
-                  </div>
-                </div>
-                <div className="mb-3">
-                  <label htmlFor="buildingClass" className="form-label">
-                    Building Class
-                  </label>
-                  <select
-                    className="form-select form-select-sm"
-                    id="buildingClass"
-                  >
-                    <option value="Class A">Class A</option>
-                    <option value="Class B">Class B</option>
-                    <option value="Class C">Class C</option>
-                  </select>
-                </div>
-                <div className="mb-3">
-                  <label htmlFor="windRegion" className="form-label">
-                    Wind Region
-                  </label>
-                  <select
-                    className="form-select form-select-sm"
-                    id="windRegion"
-                  >
-                    <option value="Region A">Region A</option>
-                    <option value="Region B">Region B</option>
-                    <option value="Region C">Region C</option>
-                  </select>
-                </div>
-                <div className="mb-3">
-                  <label htmlFor="importanceLevel" className="form-label">
-                    Importance Level
-                  </label>
-                  <select
-                    className="form-select form-select-sm"
-                    id="importanceLevel"
-                  >
-                    <option value="Low">Low</option>
-                    <option value="Medium">Medium</option>
-                    <option value="High">High</option>
-                  </select>
-                </div>
+            </div>
+            <div className="mb-3">
+              <label htmlFor="length" className="form-label">
+                Length (meters)
+              </label>
+              <div className="input-group">
+                <input
+                  type="text"
+                  className="form-control form-control-sm"
+                  id="length"
+                  disabled={!isEditable}
+                  style={{ width: "200px" }}
+                  value={length}
+                  onChange={(e) => setLength(parseFloat(e.target.value))}
+                />
+                <span className="input-group-text">meters</span>
+              </div>
+            </div>
+            <div className="mb-3">
+              <label htmlFor="average_height" className="form-label">
+                Avg Height (meters)
+              </label>
+              <div className="input-group">
+                <input
+                  type="text"
+                  className="form-control form-control-sm"
+                  id="average_height"
+                  disabled={!isEditable}
+                  style={{ width: "200px" }}
+                  value={average_height}
+                  onChange={(e) =>
+                    setaverage_height(parseFloat(e.target.value))
+                  }
+                />
+                <span className="input-group-text">meters</span>
+              </div>
+            </div>
+            <div className="mb-3">
+              <label htmlFor="elevation" className="form-label">
+                Elevation (meters)
+              </label>
+              <div className="input-group">
+                <input
+                  type="text"
+                  className="form-control form-control-sm"
+                  id="elevation"
+                  disabled={!isEditable}
+                  style={{ width: "200px" }}
+                  value={elevation}
+                  onChange={(e) => setElevation(parseFloat(e.target.value))}
+                />
+
+                <span className="input-group-text">meters</span>
               </div>
             </div>
 
-            <div className="row">
-              <div className="col-md-12">
-                <h4>Calculation Input</h4>
-              </div>
-              <div className="col-md-12">
-                <div className="row">
-                  <div className="col-md-6 mb-2">
-                    <label htmlFor="vr" className="form-label">
-                      Regional Wind Speed (Vr)
-                    </label>
-                    <input
-                      type="text"
-                      className="form-control form-control-sm"
-                      id="vr"
-                      disabled={!isEditable}
-                    />
-                  </div>
-                  <div className="col-md-6 mb-2">
-                    <label htmlFor="ms" className="form-label">
-                      Shielding (Ms)
-                    </label>
-                    <input
-                      type="text"
-                      className="form-control form-control-sm"
-                      id="ms"
-                      disabled={!isEditable}
-                    />
-                  </div>
-                  <div className="col-md-6 mb-2">
-                    <label htmlFor="mz" className="form-label">
-                      Terrain Category (Mz)
-                    </label>
-                    <input
-                      type="text"
-                      className="form-control form-control-sm"
-                      id="mz"
-                      disabled={!isEditable}
-                    />
-                  </div>
-                  <div className="col-md-6 mb-2">
-                    <label htmlFor="mt" className="form-label">
-                      Topography (Mt)
-                    </label>
-                    <input
-                      type="text"
-                      className="form-control form-control-sm"
-                      id="mt"
-                      disabled={!isEditable}
-                    />
-                  </div>
-                </div>
-              </div>
-              <div className="col-md-12">
-                <div className="row">
-                  <div className="col-md-6 mb-2">
-                    <label htmlFor="md" className="form-label">
-                      Wind Direction Multiplier (Md)
-                    </label>
-                    <input
-                      type="text"
-                      className="form-control form-control-sm"
-                      id="md"
-                      disabled={!isEditable}
-                    />
-                  </div>
-                  <div className="col-md-6 mb-2">
-                    <label htmlFor="mc" className="form-label">
-                      Climate Change Multiplier (Mc)
-                    </label>
-                    <input
-                      type="text"
-                      className="form-control form-control-sm"
-                      id="mc"
-                      disabled={!isEditable}
-                    />
-                  </div>
-                  <div className="col-md-6 mb-2">
-                    <label htmlFor="worstDirection" className="form-label">
-                      Worst Cardinal Direction
-                    </label>
-                    <input
-                      type="text"
-                      className="form-control form-control-sm"
-                      id="worstDirection"
-                      disabled={!isEditable}
-                    />
-                  </div>
-                </div>
-              </div>
+            <div className="mb-3">
+              <label htmlFor="building_class" className="form-label">
+                Building Class
+              </label>
+              <input
+                type="text"
+                className="form-control form-control-sm"
+                id="building_class"
+                disabled={!isEditable}
+                style={{ width: "200px" }}
+                value={building_class}
+                onChange={(e) => setbuilding_class(e.target.value)}
+              />
             </div>
-
-            {showSaveButton && (
-              <button
-                type="submit"
-                className="btn btn-success d-block mx-auto"
-                onClick={handleSave}
+            <div className="mb-3">
+              <label htmlFor="wind_region" className="form-label">
+                Wind Region
+              </label>
+              <select
+                className="form-select form-select-sm"
+                id="wind_region"
+                value={wind_region}
+                onChange={handleSelectChange}
               >
-                Save & Request Calculation
-              </button>
-            )}
-          </form>
-        )}
-      </Formik>
+                <option value="">Select Wind Region</option>
+                <option value="A">Region A</option>
+                <option value="B">Region B</option>
+                <option value="C">Region C</option>
+              </select>
+            </div>
+            <div className="mb-3">
+              <label htmlFor="importance_level" className="form-label">
+                Importance Level
+              </label>
+              <select
+                className="form-select form-select-sm"
+                id="importance_level"
+                value={importance_level}
+                onChange={handleSelectChange}
+              >
+                <option value="">Select Importance Level</option>
+                <option value="1">Low</option>
+                <option value="2">Medium</option>
+                <option value="3">High</option>
+              </select>
+            </div>
+          </div>
+        </div>
 
+        <div className="row">
+          <div className="col-md-12">
+            <h4>Calculation Input</h4>
+          </div>
+          <div className="col-md-12">
+            <div className="row">
+              <div className="col-md-6 mb-2">
+                <label htmlFor="regionalWindspeed" className="form-label">
+                  Regional Wind Speed (regionalWindspeed)
+                </label>
+                <input
+                  type="text"
+                  className="form-control form-control-sm"
+                  id="regionalWindspeed"
+                  disabled={!isEditable}
+                  value={regionalWindspeed}
+                  onChange={(e) => setregionalWindspeed(e.target.value)}
+                />
+              </div>
+              <div className="col-md-6 mb-2">
+                <label htmlFor="shielding" className="form-label">
+                  Shielding (shielding)
+                </label>
+                <input
+                  type="text"
+                  className="form-control form-control-sm"
+                  id="shielding"
+                  disabled={!isEditable}
+                  value={shielding}
+                  onChange={(e) => setshielding(e.target.value)}
+                />
+              </div>
+              <div className="col-md-6 mb-2">
+                <label htmlFor="terrainCategory" className="form-label">
+                  Terrain Category (terrainCategory)
+                </label>
+                <input
+                  type="text"
+                  className="form-control form-control-sm"
+                  id="terrainCategory"
+                  disabled={!isEditable}
+                  value={terrainCategory}
+                  onChange={(e) => setterrainCategory(e.target.value)}
+                />
+              </div>
+              <div className="col-md-6 mb-2">
+                <label htmlFor="topography" className="form-label">
+                  Topography (Mt)
+                </label>
+                <input
+                  type="text"
+                  className="form-control form-control-sm"
+                  id="topography"
+                  disabled={!isEditable}
+                  value={topography}
+                  onChange={(e) => settopography(e.target.value)}
+                />
+              </div>
+            </div>
+          </div>
+          <div className="col-md-12">
+            <div className="row">
+              <div className="col-md-6 mb-2">
+                <label
+                  htmlFor="windDirectionalMultiplier"
+                  className="form-label"
+                >
+                  Wind Direction Multiplier (Md)
+                </label>
+                <input
+                  type="text"
+                  className="form-control form-control-sm"
+                  id="windDirectionalMultiplier"
+                  disabled={!isEditable}
+                  value={windDirectionalMultiplier}
+                  onChange={(e) => setwindDirectionalMultiplier(e.target.value)}
+                />
+              </div>
+              <div className="col-md-6 mb-2">
+                <label htmlFor="climateMultiplier" className="form-label">
+                  Climate Change Multiplier (climateMultiplier)
+                </label>
+                <input
+                  type="text"
+                  className="form-control form-control-sm"
+                  id="climateMultiplier"
+                  disabled={!isEditable}
+                  value={climateMultiplier}
+                  onChange={(e) => setclimateMultiplier(e.target.value)}
+                />
+              </div>
+              <div className="col-md-6 mb-2">
+                <label htmlFor="cardinalDirection" className="form-label">
+                  cardinalDirection (cardinalDirection)
+                </label>
+                <input
+                  type="text"
+                  className="form-control form-control-sm"
+                  id="cardinalDirection"
+                  disabled={!isEditable}
+                  value={cardinalDirection}
+                  onChange={(e) => setCardinalDirection(e.target.value)}
+                />
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {showSaveButton && (
+          <button
+            type="submit"
+            className="btn btn-success d-block mx-auto"
+            onClick={handleSave}
+          >
+            Save & Request Calculation
+          </button>
+        )}
+      </form>
       {showResults && (
         <div>
           <div className="col-md-3">
@@ -391,6 +606,9 @@ function NewJobPage({ status }) {
             <div className="col-md-3">
               <div>
                 <p>Terrain Category (TC)</p>
+                {calculatedWindspeed && (
+                  <div>{calculatedWindspeed.terrainCategory}</div>
+                )}
                 <div
                   id="tcr"
                   style={{
@@ -402,6 +620,7 @@ function NewJobPage({ status }) {
               </div>
               <div>
                 <p>T.C. Factor (Mz)</p>
+
                 <div
                   id="mzr"
                   style={{
@@ -413,6 +632,9 @@ function NewJobPage({ status }) {
               </div>
               <div>
                 <p>Topography (Mt)</p>
+                {calculatedWindspeed && (
+                  <div>{calculatedWindspeed.topography}</div>
+                )}
                 <div
                   id="mtr"
                   style={{
@@ -424,6 +646,9 @@ function NewJobPage({ status }) {
               </div>
               <div>
                 <p>Wind Direction Multiplier(Md)</p>
+                {calculatedWindspeed && (
+                  <div>{calculatedWindspeed.windDirectionalMultiplier}</div>
+                )}
                 <div
                   id="mdr"
                   style={{
@@ -435,6 +660,9 @@ function NewJobPage({ status }) {
               </div>
               <div>
                 <p>Climate Change Multiplier (mc)</p>
+                {calculatedWindspeed && (
+                  <div>{calculatedWindspeed.climateMultiplier}</div>
+                )}
                 <div
                   id="mcr"
                   style={{
@@ -446,6 +674,7 @@ function NewJobPage({ status }) {
               </div>
               <div>
                 <p>Vsite 1</p>
+                {calculatedWindspeed && <div>{calculatedWindspeed.vSite1}</div>}
                 <div
                   id="vsr"
                   style={{
@@ -459,10 +688,12 @@ function NewJobPage({ status }) {
             <div className="col-md-3"></div>
             <div className="col-md-3">
               <div>
-                <p>Vsite 1 (Max)</p>
-                <span className="form-control-plaintext">
-                  [Calculated Vsite 1 Value]
-                </span>
+                {calculatedWindspeed && (
+                  <div>
+                    <h2>VSsite1 Calculation</h2>
+                    <h2> {calculatedWindspeed.vSite1}</h2>
+                  </div>
+                )}
               </div>
               {!isCompleted && (
                 <div className="col-md-12" style={{ marginTop: "50px" }}>
@@ -482,7 +713,6 @@ function NewJobPage({ status }) {
           </div>
         </div>
       )}
-
       {showResults && (
         <div className="row mt-4">
           <div className="col-md-12 text-center">
