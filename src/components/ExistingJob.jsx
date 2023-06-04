@@ -1110,7 +1110,7 @@ function ExistingJob() {
                 ></div>
               </div>
               <div>
-                <p>Vsite 1</p>
+                <p>Vsite</p>
                 {calculatedWindspeed && <div>{calculatedWindspeed.vSite1}</div>}
                 <div
                   id="vsr"
@@ -1127,7 +1127,7 @@ function ExistingJob() {
               <div>
                 {calculatedWindspeed && (
                   <div>
-                    <h2>VSsite1 Calculation</h2>
+                    <h2>VSsite Calculation</h2>
                     <h2> {calculatedWindspeed.vSite1}</h2>
                   </div>
                 )}
