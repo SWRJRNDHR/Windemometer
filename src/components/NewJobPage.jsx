@@ -142,6 +142,7 @@ function NewJobPage() {
           climateMultiplier,
           dateCreated,
           cardinalDirection,
+          status: "COMPLETED",
         };
 
         // Make the windspeeds API call
@@ -159,7 +160,7 @@ function NewJobPage() {
       .then((response) => response.json())
       .then((data) => {
         // Handle the response from the windspeeds API
-        console.log("Windspeed API response:", data);
+        console.log("HEY THERE Windspeed API response:", data);
 
         const windspeedCalculateBody = {
           projectId,
@@ -193,7 +194,7 @@ function NewJobPage() {
         //console.log("API response:", data);
         setCalculatedWindspeed(data);
         const projectId = data.projectId;
-        console.log("STATUS Windspeed: ", data.status);
+        console.log("STATUS Windspeed: ", data);
         setShowSaveButton(false);
         setIsEditable(false);
         setShowResults(true);
@@ -347,7 +348,7 @@ function NewJobPage() {
       .then((response) => response.json())
       .then((data) => {
         // Handle the response from the windspeeds API
-        console.log("Windspeed API response:", data);
+        console.log("Another Windspeed API response:", data);
 
         const windspeedCalculateBody = {
           projectId,
@@ -495,6 +496,7 @@ function NewJobPage() {
     setStatus(newStatus);
   }, []);
 */
+
   return (
     <div className="container">
       <h1>New Job</h1>

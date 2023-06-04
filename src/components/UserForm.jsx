@@ -5,10 +5,24 @@ function UserForm({ userName }) {
   const [searchResults, setSearchResults] = useState([]);
 
   const handleSearch = () => {
+    const jobField = document.getElementById("jobField").value;
+    const clientName = document.getElementById("clientName").value;
+
+    if (jobField.trim() === "" && clientName.trim() === "") {
+      setSearchResults([]);
+      return;
+    }
+
     fetch("https://1tg41k5u7h.execute-api.us-east-1.amazonaws.com/projects/")
       .then((response) => response.json())
       .then((data) => {
-        setSearchResults(data);
+        // Filter the search results based on job_reference and client_first_name
+        const filteredResults = data.filter(
+          (result) =>
+            result.job_reference.includes(jobField) &&
+            result.client_first_name.includes(clientName),
+        );
+        setSearchResults(filteredResults);
       })
       .catch((error) => {
         console.error("Error fetching projects:", error);
@@ -16,11 +30,6 @@ function UserForm({ userName }) {
   };
 
   const navigate = useNavigate();
-  const handleCreateJob = () => {
-    // Handle creating a new job
-    navigate("/NewJobPage");
-    console.log("Creating new job");
-  };
 
   const handleOpenReport = (projectId) => {
     // Handle opening the job report for the selected project
@@ -38,6 +47,12 @@ function UserForm({ userName }) {
       .catch((error) => {
         console.error("Error fetching project:", error);
       });
+  };
+
+  const handleCreateJob = () => {
+    // Handle creating a new job
+    navigate("/NewJobPage");
+    console.log("Creating new job");
   };
 
   return (

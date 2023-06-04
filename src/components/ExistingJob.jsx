@@ -10,7 +10,8 @@ function ExistingJob() {
   const projectData = location.state.projectData;
 
   const [showResults, setShowResults] = useState(false);
-  const [showSaveButton, setShowSaveButton] = useState(true);
+  const [projectId, setProjectId] = useState("");
+  const [showSaveButton, setShowSaveButton] = useState(false);
   const [showUpdateButton, setUpdateButton] = useState(false);
   const [isEditable, setIsEditable] = useState(true);
   const [isChecked, setIsChecked] = useState(false);
@@ -19,7 +20,6 @@ function ExistingJob() {
   const mock = new AxiosMockAdapter(axios);
   const [dateCreated, setDateCreated] = useState("");
 
-  //const [ProjectId, setProjectId] = useState("");
   const [job_reference, setjob_reference] = useState("");
   const [client_first_name, setclient_first_name] = useState("");
   const [client_last_name, setclient_last_name] = useState("");
@@ -43,7 +43,8 @@ function ExistingJob() {
   const [climateMultiplier, setclimateMultiplier] = useState("");
   const [status, setStatus] = useState("WORKING");
   const [calculatedWindspeed, setCalculatedWindspeed] = useState(null);
-  const [projectId, setProjectId] = useState(null);
+  const [windspeedStore, setWindspeedStore] = useState(null);
+  const [projectStore, setProjectStore] = useState(null);
 
   mock.onGet("/api/download").reply(200, {
     name: "API Gateway",
@@ -55,6 +56,7 @@ function ExistingJob() {
   useEffect(() => {
     if (projectData) {
       handleSave(projectData);
+      setProjectId(projectData.projectId);
     }
   }, [projectData]);
 
@@ -94,16 +96,18 @@ function ExistingJob() {
       console.log(error);
     }
   };
-  const handleSave = (projectData) => {
-    //event.preventDefault(); // Prevent the default form submission behavior
-    //const user_id = getUserID();
+
+  const handleSave = async (projectData) => {
+    setIsEditable(false);
+    setShowResults(true);
+    console.log("data_sent", projectData);
     const date_created = dateCreated;
     const userId = getUserID();
     console.log(userId);
-    //console.log("Selected wind region:", wind_region);
 
     const {
       average_height,
+      id,
       building_class,
       client_email,
       client_first_name,
@@ -135,59 +139,113 @@ function ExistingJob() {
       status: "AT_REVIEW",
       user_id,
       wind_region,
+      id,
     };
 
-    // Disable the save button and make the form fields read-only
+    try {
+      const projectResponse = await fetch(
+        `https://1tg41k5u7h.execute-api.us-east-1.amazonaws.com/projects/${id}`,
+      );
+      const projectData = await projectResponse.json();
 
-    fetch("https://1tg41k5u7h.execute-api.us-east-1.amazonaws.com/projects/", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify(projectRequestBody),
-    })
-      .then((response) => {
-        console.log(response);
+      // Handle the response from the API
+      console.log("Project API response:", projectData);
+      //setProjectStore(projectData);
+      // Extract the project ID from the response
+      const projectId = projectData.id;
+      console.log(projectId);
+      setProjectId(projectId); // Update the projectId state here
 
-        return response.json();
-      })
-      .then((data) => {
-        // Handle the response from the API
-        console.log("Project API response:", data);
-        // Extract the project ID from the response
-        const projectId = data.id;
+      // Create the windspeeds request body with the project ID
+      const windspeedRequestBody = {
+        ProjectId: projectId,
+        userId,
+        regionalWindspeed,
+        shielding,
+        terrainCategory,
+        topography,
+        windDirectionalMultiplier,
+        climateMultiplier,
+        dateCreated,
+        cardinalDirection,
+      };
 
-        // Create the windspeeds request body with the project ID
-        const windspeedRequestBody = {
-          ProjectId: projectId,
-          userId,
-          regionalWindspeed,
-          shielding,
+      const windspeedResponse = await fetch(
+        `https://1tg41k5u7h.execute-api.us-east-1.amazonaws.com/windspeeds/`,
+      );
+      const windspeedData = await windspeedResponse.json();
+
+      let matchingWindspeed = null;
+
+      for (const windspeed of windspeedData) {
+        if (windspeed.projectId === projectId) {
+          matchingWindspeed = windspeed;
+          break;
+        }
+      }
+
+      if (matchingWindspeed) {
+        // Retrieve the windspeedId from the matching windspeed object
+        const windspeedId = matchingWindspeed.id;
+        setWindspeedStore(matchingWindspeed);
+        console.log("Matching Wind Speed:", matchingWindspeed);
+        // Use the windspeedId in further API calls or perform any other actions
+        console.log("Windspeed ID:", windspeedId);
+        // Create the windspeed calculation request body
+        const windspeedCalculateBody = {
+          projectId,
+          date_created,
+          cardinalDirection,
           terrainCategory,
-          topography,
           windDirectionalMultiplier,
           climateMultiplier,
-          dateCreated,
-          cardinalDirection,
+          regionalWindspeed,
+          shielding,
+          topography,
+          status: "CALCULATED",
+          user_id,
         };
-
-        // Make the windspeeds API call
-        return fetch(
-          "https://1tg41k5u7h.execute-api.us-east-1.amazonaws.com/windspeeds/",
-          {
-            method: "POST",
-            headers: {
-              "Content-Type": "application/json",
+        try {
+          const response = await fetch(
+            `https://1tg41k5u7h.execute-api.us-east-1.amazonaws.com/windspeeds/${windspeedId}/calculate`,
+            {
+              method: "POST",
+              headers: {
+                "Content-Type": "application/json",
+              },
+              body: JSON.stringify(windspeedCalculateBody),
             },
-            body: JSON.stringify(windspeedRequestBody),
-          },
-        );
-      })
-      .then((response) => response.json())
-      .then((data) => {
-        // Handle the response from the windspeeds API
-        console.log("Windspeed API response:", data);
+          );
 
+          const data = await response.json();
+
+          // Handle the response from the windspeeds API
+          console.log("API response:", data);
+          setCalculatedWindspeed(data);
+          const projectId = data.projectId;
+          console.log("STATUS Windspeed: ", data.status);
+          setShowSaveButton(false);
+          setIsEditable(false);
+          setShowResults(true);
+
+          setProjectId(projectId);
+        } catch (error) {
+          // Handle any errors that occurred during the API calls
+          console.error("API error:", error);
+        }
+      } else {
+        // Handle the case where no matching windspeed is found for the project ID
+        console.log("No matching windspeed found for projectId:", projectId);
+      }
+    } catch (error) {
+      // Handle any errors that occurred during the API calls
+      console.error("API error:", error);
+    }
+  };
+
+  // Handle the response from the windspeeds API
+  //console.log("Windspeed API response:", data);
+  /*
         const windspeedCalculateBody = {
           projectId,
           date_created,
@@ -210,10 +268,10 @@ function ExistingJob() {
             },
             body: JSON.stringify(windspeedCalculateBody),
           },
-        );
+        );*/
 
-        // You can update the state or perform any other actions with the response data here
-      })
+  // You can update the state or perform any other actions with the response data here
+  /*
       .then((response) => response.json())
       .then((data) => {
         // Handle the response from the windspeeds API
@@ -236,7 +294,7 @@ function ExistingJob() {
         // Handle any errors that occurred during the API calls
         console.error("API error:", error);
       });
-  };
+  };*/
 
   const handleEdit = async (event) => {
     event.preventDefault(); // Prevent the default form submission behavior
@@ -627,6 +685,7 @@ function ExistingJob() {
                 type="text"
                 className="form-control form-control-sm"
                 id="dateCreated"
+                disabled={!isEditable}
                 value={dateCreated}
                 readOnly
                 style={{ width: "200px" }}
