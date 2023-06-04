@@ -25,11 +25,24 @@ function UserForm({ userName }) {
   const handleOpenReport = (projectId) => {
     // Handle opening the job report for the selected project
     console.log("Opening job report for project ID:", projectId);
+
+    // Call the projects/id API and navigate to NewJobPage with the project data
+    fetch(
+      `https://1tg41k5u7h.execute-api.us-east-1.amazonaws.com/projects/${projectId}`,
+    )
+      .then((response) => response.json())
+      .then((data) => {
+        // Navigate to NewJobPage and pass the project data as state
+        navigate("/ExistingJob", { state: { projectData: data } });
+      })
+      .catch((error) => {
+        console.error("Error fetching project:", error);
+      });
   };
 
   return (
     <div className="container">
-      <h1 className="mt-5">Welcome Username {userName}</h1>
+      <h1 className="mt-5">Welcome </h1>
       <div className="row mt-5">
         <div className="col-md-6">
           <label htmlFor="jobField" className="form-label">
@@ -71,10 +84,10 @@ function UserForm({ userName }) {
           <tbody>
             {searchResults.map((result) => (
               <tr key={result.id}>
-                <td>{result.projectReference}</td>
-                <td>{result.dateCreated}</td>
-                <td>{result.clientName}</td>
-                <td>{result.address}</td>
+                <td>{result.job_reference}</td>
+                <td>{result.date_created}</td>
+                <td>{result.client_first_name}</td>
+                <td>{result.site_address}</td>
                 <td>{result.status}</td>
                 <td>
                   <button

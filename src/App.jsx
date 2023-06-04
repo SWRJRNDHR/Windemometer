@@ -2,6 +2,7 @@ import React from "react";
 import { Route, Routes, Navigate } from "react-router-dom";
 import "bootstrap/dist/css/bootstrap.min.css";
 import HealthCheck from "./components/HealthCheck";
+import ExistingJob from "./components/ExistingJob";
 import UserForm from "./components/UserForm";
 import NewJobPage from "./components/NewJobPage";
 
@@ -27,6 +28,7 @@ export default function App() {
             <Route path="/" element={<UserForm />} />
             <Route path="/HealthCheck" element={<HealthCheck />} />
             <Route path="/NewJobPage" element={<NewJobPage />} />
+            <Route path="/ExistingJob" element={<ExistingJob />} />
             <Route path="/*" element={<Navigate to="/" />} />
           </Routes>
         </main>

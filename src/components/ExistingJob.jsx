@@ -3,8 +3,12 @@ import axios from "axios";
 import { useNavigate } from "react-router-dom";
 import AxiosMockAdapter from "axios-mock-adapter";
 import { Auth } from "aws-amplify";
+import { useLocation } from "react-router-dom";
 
-function NewJobPage() {
+function ExistingJob() {
+  const location = useLocation();
+  const projectData = location.state.projectData;
+
   const [showResults, setShowResults] = useState(false);
   const [showSaveButton, setShowSaveButton] = useState(true);
   const [showUpdateButton, setUpdateButton] = useState(false);
@@ -48,6 +52,12 @@ function NewJobPage() {
     dateDeployed: "2022-05-10",
   });
 
+  useEffect(() => {
+    if (projectData) {
+      handleSave(projectData);
+    }
+  }, [projectData]);
+
   const handleDownload = () => {
     axios
       .get("/api/download")
@@ -84,13 +94,30 @@ function NewJobPage() {
       console.log(error);
     }
   };
-  const handleSave = async (event) => {
-    event.preventDefault(); // Prevent the default form submission behavior
-    const user_id = await getUserID();
+  const handleSave = (projectData) => {
+    //event.preventDefault(); // Prevent the default form submission behavior
+    //const user_id = getUserID();
     const date_created = dateCreated;
-    const userId = await getUserID();
+    const userId = getUserID();
     console.log(userId);
-    console.log("Selected wind region:", wind_region);
+    //console.log("Selected wind region:", wind_region);
+
+    const {
+      average_height,
+      building_class,
+      client_email,
+      client_first_name,
+      client_last_name,
+      elevation,
+      importance_level,
+      job_reference,
+      length,
+      notes,
+      site_address,
+      span,
+      user_id,
+      wind_region,
+    } = projectData;
 
     const projectRequestBody = {
       average_height,
@@ -497,7 +524,7 @@ function NewJobPage() {
 */
   return (
     <div className="container">
-      <h1>New Job</h1>
+      <h1>Existing Project</h1>
       <h3>Status: {status}</h3>
       <hr />
       <h2>Project Details</h2>
@@ -1080,4 +1107,4 @@ function NewJobPage() {
   );
 }
 
-export default NewJobPage;
+export default ExistingJob;
