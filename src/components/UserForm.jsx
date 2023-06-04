@@ -1,5 +1,6 @@
 import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
+import logo from "../assets/logo.png";
 
 function UserForm({ userName }) {
   const [searchResults, setSearchResults] = useState([]);
@@ -57,7 +58,20 @@ function UserForm({ userName }) {
 
   return (
     <div className="container">
-      <h1 className="mt-5">Welcome </h1>
+      <div className="container d-flex flex-column align-items-center justify-content-center text-center ">
+        <img
+          src={logo}
+          alt="Logo"
+          className="img-fluid"
+          style={{ maxWidth: "100px" }}
+        />
+      </div>
+      <div className="container d-flex flex-column align-items-center justify-content-center text-center ">
+        <div className="col-12">
+          <h2>WINDEMOMETER</h2>
+        </div>
+      </div>
+
       <div className="row mt-5">
         <div className="col-md-6">
           <label htmlFor="jobField" className="form-label">
@@ -80,10 +94,14 @@ function UserForm({ userName }) {
           </label>
         </div>
       </div>
-      <button className="btn btn-primary mt-3" onClick={handleSearch}>
-        Search
-      </button>
-
+      <div className="container d-flex flex-column align-items-center justify-content-center text-center ">
+        <button className="btn btn-primary mt-3" onClick={handleSearch}>
+          Search
+        </button>
+        <button className="btn btn-success mt-3" onClick={handleCreateJob}>
+          Create New Job
+        </button>
+      </div>
       {searchResults.length > 0 && (
         <table className="table mt-3">
           <thead>
@@ -117,10 +135,6 @@ function UserForm({ userName }) {
           </tbody>
         </table>
       )}
-
-      <button className="btn btn-success mt-3" onClick={handleCreateJob}>
-        Create New Job
-      </button>
     </div>
   );
 }

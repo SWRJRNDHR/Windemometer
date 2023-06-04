@@ -4,6 +4,7 @@ import { useNavigate } from "react-router-dom";
 import AxiosMockAdapter from "axios-mock-adapter";
 import { Auth } from "aws-amplify";
 import { useLocation } from "react-router-dom";
+import logo from "../assets/logo.png";
 
 function ExistingJob() {
   const location = useLocation();
@@ -582,6 +583,14 @@ function ExistingJob() {
 */
   return (
     <div className="container">
+      <div className="container d-flex flex-column align-items-center justify-content-center text-center ">
+        <img
+          src={logo}
+          alt="Logo"
+          className="img-fluid"
+          style={{ maxWidth: "100px" }}
+        />
+      </div>
       <h1>Existing Project</h1>
       <h3>Status: {status}</h3>
       <hr />

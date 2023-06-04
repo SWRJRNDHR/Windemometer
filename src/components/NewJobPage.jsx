@@ -3,6 +3,7 @@ import axios from "axios";
 import { useNavigate } from "react-router-dom";
 import AxiosMockAdapter from "axios-mock-adapter";
 import { Auth } from "aws-amplify";
+import logo from "../assets/logo.png";
 
 function NewJobPage() {
   const [showResults, setShowResults] = useState(false);
@@ -37,7 +38,7 @@ function NewJobPage() {
   const [windDirectionalMultiplier, setwindDirectionalMultiplier] =
     useState("");
   const [climateMultiplier, setclimateMultiplier] = useState("");
-  const [status, setStatus] = useState("WORKING");
+  const [status, setStatus] = useState("");
   const [calculatedWindspeed, setCalculatedWindspeed] = useState(null);
   const [projectId, setProjectId] = useState(null);
 
@@ -198,7 +199,7 @@ function NewJobPage() {
         setShowSaveButton(false);
         setIsEditable(false);
         setShowResults(true);
-
+        setStatus("AT_REVIEW");
         return projectId;
         // You can update the state or perform any other actions with the response data here
       })
@@ -262,6 +263,7 @@ function NewJobPage() {
         setIsEditable(true);
         setShowResults(false);
         setIsCompleted(false);
+        setStatus("WORKING");
       })
 
       .catch((error) => {
@@ -469,6 +471,7 @@ function NewJobPage() {
         // Handle the response from the API
         console.log("Project API response:", data);
         setIsCompleted(true);
+        setStatus("COMPLETE");
       })
 
       .catch((error) => {
@@ -499,6 +502,14 @@ function NewJobPage() {
 
   return (
     <div className="container">
+      <div className="container d-flex flex-column align-items-center justify-content-center text-center ">
+        <img
+          src={logo}
+          alt="Logo"
+          className="img-fluid"
+          style={{ maxWidth: "100px" }}
+        />
+      </div>
       <h1>New Job</h1>
       <h3>Status: {status}</h3>
       <hr />
